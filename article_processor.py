@@ -1,7 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
 import trafilatura
-from newspaper import Article
 from urllib.parse import urlparse
 import anthropic
 from config import Config
@@ -36,15 +35,20 @@ class ArticleProcessor:
                         article_data['author'] = metadata.author
                         article_data['source'] = metadata.sitename or self._get_domain(url)
 
-            # Method 2: Fallback to newspaper3k if trafilatura fails
+            # Method 2: Fallback to BeautifulSoup if trafilatura fails
             if not article_data['content']:
-                article = Article(url)
-                article.download()
-                article.parse()
+                response = requests.get(url, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
+                soup = BeautifulSoup(response.content, 'html.parser')
 
-                article_data['content'] = article.text
-                article_data['title'] = article.title
-                article_data['author'] = ', '.join(article.authors) if article.authors else None
+                # Try to extract title
+                if not article_data['title']:
+                    title_tag = soup.find('title') or soup.find('h1')
+                    if title_tag:
+                        article_data['title'] = title_tag.get_text().strip()
+
+                # Extract text from paragraphs
+                paragraphs = soup.find_all('p')
+                article_data['content'] = '\n\n'.join([p.get_text().strip() for p in paragraphs if p.get_text().strip()])
                 article_data['source'] = self._get_domain(url)
 
             # Clean up
