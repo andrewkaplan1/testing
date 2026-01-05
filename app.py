@@ -151,18 +151,68 @@ def generate_audio(article_id):
 
 @app.route('/api/ingest', methods=['POST'])
 def ingest_article():
-    """Endpoint for email webhook to ingest articles"""
+    """Endpoint for email webhook to ingest articles and newsletters"""
     try:
-        # This will be called by email service webhooks (e.g., SendGrid, Mailgun)
-        email_data = request.json or request.form.to_dict()
+        # This will be called by email service webhooks (e.g., SendGrid)
+        # SendGrid sends form data, not JSON
+        email_data = request.form.to_dict() if request.form else request.json
 
-        urls = email_handler.extract_urls_from_email(email_data)
+        # Parse the email
+        parsed_email = email_handler.parse_inbound_email(email_data)
+        print(f"Received email: {parsed_email['subject']} from {parsed_email['from']}")
 
         results = []
-        for url in urls:
+
+        # If email contains URLs, extract those articles
+        if parsed_email['urls']:
+            for url in parsed_email['urls']:
+                try:
+                    # Extract and process article
+                    article_data = processor.extract_article(url)
+                    if not article_data or not article_data.get('content'):
+                        results.append({'url': url, 'error': 'Failed to extract article', 'success': False})
+                        continue
+
+                    article_id = db.add_article(
+                        url=article_data['url'],
+                        title=article_data['title'],
+                        author=article_data['author'],
+                        source=article_data['source'],
+                        content=article_data['content']
+                    )
+
+                    # Generate summary
+                    recent_articles = db.get_articles(limit=5)
+                    summary_data = processor.generate_summary(article_data, recent_articles)
+
+                    if summary_data:
+                        db.update_article(
+                            article_id,
+                            summary=summary_data.get('summary', ''),
+                            key_insights=summary_data.get('key_insights', []),
+                            implications=summary_data.get('implications', '')
+                        )
+
+                    results.append({'url': url, 'article_id': article_id, 'success': True})
+                except Exception as e:
+                    results.append({'url': url, 'error': str(e), 'success': False})
+
+        # If no URLs found, treat the entire email as an article (for newsletters)
+        else:
             try:
-                # Extract and process article
-                article_data = processor.extract_article(url)
+                article_data = {
+                    'url': f'email-{parsed_email["from"]}',
+                    'title': parsed_email['subject'] or 'Forwarded Email',
+                    'author': parsed_email['from'],
+                    'source': 'Email',
+                    'content': parsed_email['text'] or parsed_email['html']
+                }
+
+                if not article_data['content']:
+                    return jsonify({'error': 'Email has no content'}), 400
+
+                print(f"Processing email as article: {article_data['title']}")
+
                 article_id = db.add_article(
                     url=article_data['url'],
                     title=article_data['title'],
@@ -175,20 +225,25 @@ def ingest_article():
                 recent_articles = db.get_articles(limit=5)
                 summary_data = processor.generate_summary(article_data, recent_articles)
 
-                db.update_article(
-                    article_id,
-                    summary=summary_data['summary'],
-                    key_insights=summary_data['key_insights'],
-                    implications=summary_data['implications']
-                )
+                if summary_data:
+                    db.update_article(
+                        article_id,
+                        summary=summary_data.get('summary', ''),
+                        key_insights=summary_data.get('key_insights', []),
+                        implications=summary_data.get('implications', '')
+                    )
 
-                results.append({'url': url, 'article_id': article_id, 'success': True})
+                results.append({'type': 'email', 'article_id': article_id, 'success': True})
+
             except Exception as e:
-                results.append({'url': url, 'error': str(e), 'success': False})
+                results.append({'type': 'email', 'error': str(e), 'success': False})
 
         return jsonify({'results': results}), 200
 
     except Exception as e:
+        print(f"Error in ingest endpoint: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/digest/send', methods=['POST'])

@@ -11,6 +11,33 @@ class EmailHandler:
         self.smtp_user = Config.SMTP_USER
         self.smtp_password = Config.SMTP_PASSWORD
 
+    def parse_inbound_email(self, email_data):
+        """Parse inbound email from SendGrid webhook
+
+        Returns:
+            dict with 'subject', 'from', 'text', 'html', 'urls'
+        """
+        parsed = {
+            'subject': '',
+            'from': '',
+            'text': '',
+            'html': '',
+            'urls': []
+        }
+
+        if isinstance(email_data, dict):
+            # SendGrid sends: subject, from, text, html
+            parsed['subject'] = email_data.get('subject', '')
+            parsed['from'] = email_data.get('from', '')
+            parsed['text'] = email_data.get('text', '') or email_data.get('plain', '') or \
+                           email_data.get('body-plain', '') or email_data.get('stripped-text', '')
+            parsed['html'] = email_data.get('html', '') or email_data.get('body-html', '')
+
+            # Extract URLs from the email content
+            parsed['urls'] = self.extract_urls_from_email(email_data)
+
+        return parsed
+
     def extract_urls_from_email(self, email_data):
         """Extract URLs from email content"""
         urls = []
