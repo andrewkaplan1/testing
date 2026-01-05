@@ -32,6 +32,17 @@ function setupEventListeners() {
         });
     });
 
+    // Modal tabs (URL vs Text)
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tab = e.target.dataset.tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            e.target.classList.add('active');
+            document.getElementById(tab + 'Tab').classList.add('active');
+        });
+    });
+
     // Add article button
     addArticleBtn.addEventListener('click', () => {
         openModal(addArticleModal);
@@ -100,11 +111,28 @@ async function loadArticles() {
 }
 
 async function addArticle() {
-    const url = articleUrl.value.trim();
+    const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
 
-    if (!url) {
-        showNotification('Please enter a URL', 'error');
-        return;
+    let requestBody = {};
+
+    if (activeTab === 'url') {
+        const url = document.getElementById('articleUrl').value.trim();
+        if (!url) {
+            showNotification('Please enter a URL', 'error');
+            return;
+        }
+        requestBody = { url };
+    } else {
+        const title = document.getElementById('articleTitle').value.trim();
+        const text = document.getElementById('articleText').value.trim();
+        if (!text) {
+            showNotification('Please paste article text', 'error');
+            return;
+        }
+        requestBody = {
+            text: text,
+            title: title || 'Pasted Article'
+        };
     }
 
     try {
@@ -116,12 +144,14 @@ async function addArticle() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ url })
+            body: JSON.stringify(requestBody)
         });
 
         if (response.ok) {
             showNotification('Article added successfully!', 'success');
-            articleUrl.value = '';
+            document.getElementById('articleUrl').value = '';
+            document.getElementById('articleTitle').value = '';
+            document.getElementById('articleText').value = '';
             loadArticles();
         } else {
             const error = await response.json();

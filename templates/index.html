@@ -48,7 +48,20 @@
                     <button class="close-btn">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <input type="url" id="articleUrl" placeholder="Paste article URL here..." class="url-input">
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" data-tab="url">From URL</button>
+                        <button class="tab-btn" data-tab="text">Paste Text</button>
+                    </div>
+
+                    <div id="urlTab" class="tab-content active">
+                        <input type="url" id="articleUrl" placeholder="Paste article URL here..." class="url-input">
+                    </div>
+
+                    <div id="textTab" class="tab-content">
+                        <input type="text" id="articleTitle" placeholder="Article title" class="url-input">
+                        <textarea id="articleText" placeholder="Paste article text here (for paywalled content like WSJ, ESPN, etc.)..." class="text-input"></textarea>
+                    </div>
+
                     <button id="submitArticle" class="btn btn-primary">Add Article</button>
                 </div>
             </div>

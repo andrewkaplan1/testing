@@ -48,20 +48,33 @@ def get_article(article_id):
 
 @app.route('/api/articles', methods=['POST'])
 def add_article():
-    """Add a new article from URL"""
+    """Add a new article from URL or text"""
     data = request.json
     url = data.get('url')
+    text_content = data.get('text')  # Allow direct text paste
+    custom_title = data.get('title')
 
-    if not url:
-        return jsonify({'error': 'URL is required'}), 400
+    if not url and not text_content:
+        return jsonify({'error': 'URL or text content is required'}), 400
 
     try:
-        # Extract article content
-        article_data = processor.extract_article(url)
-        print(f"Extracted article: {article_data.get('title') if article_data else 'None'}")
+        if text_content:
+            # User pasted article text directly (for paywalled content)
+            article_data = {
+                'url': url or 'pasted-content',
+                'title': custom_title or 'Pasted Article',
+                'author': None,
+                'source': 'Manual Entry',
+                'content': text_content
+            }
+            print(f"Processing pasted content: {article_data['title']}")
+        else:
+            # Extract article content from URL
+            article_data = processor.extract_article(url)
+            print(f"Extracted article: {article_data.get('title') if article_data else 'None'}")
 
         if not article_data or not article_data.get('content'):
-            return jsonify({'error': 'Failed to extract article content from URL'}), 400
+            return jsonify({'error': 'Failed to extract article content from URL. Try pasting the article text instead.'}), 400
 
         # Add to database
         article_id = db.add_article(

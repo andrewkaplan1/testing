@@ -296,6 +296,39 @@ body {
     padding: 20px;
 }
 
+.tab-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
 .url-input {
     width: 100%;
     padding: 12px;
@@ -306,6 +339,23 @@ body {
 }
 
 .url-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.text-input {
+    width: 100%;
+    min-height: 200px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    margin-bottom: 12px;
+}
+
+.text-input:focus {
     outline: none;
     border-color: var(--primary-color);
 }
