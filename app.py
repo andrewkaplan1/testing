@@ -58,6 +58,10 @@ def add_article():
     try:
         # Extract article content
         article_data = processor.extract_article(url)
+        print(f"Extracted article: {article_data.get('title') if article_data else 'None'}")
+
+        if not article_data or not article_data.get('content'):
+            return jsonify({'error': 'Failed to extract article content from URL'}), 400
 
         # Add to database
         article_id = db.add_article(
@@ -71,13 +75,17 @@ def add_article():
         # Generate summary (with recent articles for context)
         recent_articles = db.get_articles(limit=5)
         summary_data = processor.generate_summary(article_data, recent_articles)
+        print(f"Generated summary: {summary_data.get('summary')[:50] if summary_data and summary_data.get('summary') else 'None'}...")
+
+        if not summary_data:
+            summary_data = {'summary': 'Summary generation failed', 'key_insights': [], 'implications': ''}
 
         # Update article with summary
         db.update_article(
             article_id,
-            summary=summary_data['summary'],
-            key_insights=summary_data['key_insights'],
-            implications=summary_data['implications']
+            summary=summary_data.get('summary', ''),
+            key_insights=summary_data.get('key_insights', []),
+            implications=summary_data.get('implications', '')
         )
 
         # Get updated article
@@ -85,6 +93,9 @@ def add_article():
         return jsonify(article), 201
 
     except Exception as e:
+        print(f"Error in add_article: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/articles/<int:article_id>/read', methods=['POST'])
