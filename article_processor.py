@@ -91,7 +91,7 @@ class ArticleProcessor:
 
         try:
             response = self.anthropic_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-20250514",
                 max_tokens=1500,
                 messages=[{
                     "role": "user",
@@ -211,7 +211,7 @@ Be concise but insightful. Focus on what's actionable and strategic for a VC.
 
         try:
             response = self.anthropic_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-20250514",
                 max_tokens=1000,
                 messages=[{
                     "role": "user",
