@@ -128,7 +128,8 @@ Content:
         if context_articles and len(context_articles) > 0:
             prompt += "\nRECENT ARTICLES FOR CONTEXT:\n"
             for idx, ctx in enumerate(context_articles[:3], 1):
-                prompt += f"{idx}. {ctx.get('title', 'Untitled')} - {ctx.get('summary', '')[:200]}\n"
+                summary = ctx.get('summary') or ''
+                prompt += f"{idx}. {ctx.get('title', 'Untitled')} - {summary[:200]}\n"
 
         prompt += """
 Please provide:
